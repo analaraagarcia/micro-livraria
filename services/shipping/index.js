@@ -14,8 +14,19 @@ const server = new grpc.Server();
 
 // implementa os métodos do ShippingService
 server.addService(shippingProto.ShippingService.service, {
-    GetShippingRate: (_, callback) => {
+    // Para evitar incompatibilidades entre diferentes convenções de nome
+    // (GetShippingRate vs getShippingRate), expomos as duas variantes.
+    getShippingRate: (_, callback) => {
         const shippingValue = Math.random() * 100 + 1; // Random value from R$1 to R$100
+        console.log('Shipping: getShippingRate called, value=', shippingValue);
+
+        callback(null, {
+            value: shippingValue,
+        });
+    },
+    GetShippingRate: (_, callback) => {
+        const shippingValue = Math.random() * 100 + 1;
+        console.log('Shipping: GetShippingRate called, value=', shippingValue);
 
         callback(null, {
             value: shippingValue,

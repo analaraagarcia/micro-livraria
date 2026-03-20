@@ -1,90 +1,121 @@
-function newBook(book) {
+// Função que cria o "card" do livro no HTML
+function createBookCard(book) {
     const div = document.createElement('div');
     div.className = 'column is-4';
+    
+    // Ajuste do caminho da imagem: removemos a barra inicial se existir
+    // para garantir que ele procure na pasta relativa 'img/'
+    const photoPath = (book.photo || '').startsWith('/') ? (book.photo || '').substring(1) : (book.photo || '');
+    
     div.innerHTML = `
         <div class="card is-shady">
             <div class="card-image">
                 <figure class="image is-4by3">
-                    <img
-                        src="${book.photo}"
-                        alt="${book.name}"
-                        class="modal-button"
-                    />
+                    <img src="${photoPath}" alt="${book.name}" />
                 </figure>
             </div>
             <div class="card-content">
                 <div class="content book" data-id="${book.id}">
                     <div class="book-meta">
                         <p class="is-size-4">R$${book.price.toFixed(2)}</p>
-                        <p class="is-size-6">Disponível em estoque: 5</p>
+                        <p class="is-size-7">Estoque: ${book.quantity}</p>
                         <h4 class="is-size-3 title">${book.name}</h4>
                         <p class="subtitle">${book.author}</p>
-                    </div>
-                    <div class="field has-addons">
-                        <div class="control">
-                            <input class="input" type="text" placeholder="Digite o CEP" />
-                        </div>
-                        <div class="control">
-                            <a class="button button-shipping is-info" data-id="${book.id}"> Calcular Frete </a>
-                        </div>
                     </div>
                     <button class="button button-buy is-success is-fullwidth">Comprar</button>
                 </div>
             </div>
         </div>`;
+
+    // Mantém o comportamento de compra: mostra uma mensagem ao usuário
+    const buyBtn = div.querySelector('.button-buy');
+    buyBtn.addEventListener('click', () => {
+        swal('Compra simulada', `Você comprou: ${book.name}`, 'success');
+
+        // Se o usuário já tiver informado um CEP, calcula o frete automaticamente
+        const cepInput = document.getElementById('shipping-cep');
+        if (cepInput && cepInput.value.trim().length > 0) {
+            fetchShipping(cepInput.value.trim());
+        }
+    });
+
     return div;
 }
 
-function calculateShipping(id, cep) {
-    fetch('http://localhost:3000/shipping/' + cep)
-        .then((data) => {
-            if (data.ok) {
-                return data.json();
+// Função para buscar dados da API
+function fetchBooks(url) {
+    const resultContainer = document.getElementById('book-result');
+    
+    fetch(url)
+        .then(res => {
+            if (!res.ok) throw new Error(`Status ${res.status} ${res.statusText}`);
+            return res.json();
+        })
+        .then(data => {
+            resultContainer.innerHTML = '';
+            
+            // Tratamento: Se vier um array (lista) ou um objeto único (busca por ID)
+            const list = Array.isArray(data) ? data : [data];
+
+            if (list.length === 0 || !list[0]) {
+                swal("Aviso", "Nenhum livro encontrado.", "info");
+                return;
             }
-            throw data.statusText;
+
+            list.forEach(book => {
+                resultContainer.appendChild(createBookCard(book));
+            });
         })
-        .then((data) => {
-            swal('Frete', `O frete é: R$${data.value.toFixed(2)}`, 'success');
+        .catch(err => {
+            resultContainer.innerHTML = '';
+            swal("Erro", `Livro não encontrado ou erro na API.\n(${err.message})`, "error");
+            console.error('fetchBooks error:', err);
+        });
+}
+
+// Função para calcular frete
+function fetchShipping(cep) {
+    if (!cep) {
+        swal('Aviso', 'Informe o CEP para calcular o frete.', 'info');
+        return;
+    }
+
+    fetch(`http://localhost:3000/shipping/${encodeURIComponent(cep)}`)
+        .then(res => {
+            if (!res.ok) throw new Error(`Status ${res.status} ${res.statusText}`);
+            return res.json();
         })
-        .catch((err) => {
-            swal('Erro', 'Erro ao consultar frete', 'error');
-            console.error(err);
+        .then(data => {
+            swal('Frete calculado', `CEP: ${cep}\nValor do frete: R$ ${Number(data.value).toFixed(2)}`, 'success');
+        })
+        .catch(err => {
+            swal('Erro', `Não foi possível calcular o frete.\n(${err.message})`, 'error');
+            console.error('fetchShipping error:', err);
         });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    const books = document.querySelector('.books');
+    // 1. Carrega todos os livros ao abrir a página
+    fetchBooks('http://localhost:3000/products');
 
-    fetch('http://localhost:3000/products')
-        .then((data) => {
-            if (data.ok) {
-                return data.json();
-            }
-            throw data.statusText;
-        })
-        .then((data) => {
-            if (data) {
-                data.forEach((book) => {
-                    books.appendChild(newBook(book));
-                });
+    const btnSearch = document.getElementById('btn-search');
+    const inputSearch = document.getElementById('search-id');
+    const btnShipping = document.getElementById('btn-shipping');
+    const inputCep = document.getElementById('shipping-cep');
 
-                document.querySelectorAll('.button-shipping').forEach((btn) => {
-                    btn.addEventListener('click', (e) => {
-                        const id = e.target.getAttribute('data-id');
-                        const cep = document.querySelector(`.book[data-id="${id}"] input`).value;
-                        calculateShipping(id, cep);
-                    });
-                });
+    // 2. Lógica do botão de busca por ID
+    btnSearch.addEventListener('click', function () {
+        const id = inputSearch.value;
+        if (!id) {
+            fetchBooks('http://localhost:3000/products'); // Se vazio, mostra todos
+            return;
+        }
+        // Chamada ao endpoint que você testou no Item 1
+        fetchBooks(`http://localhost:3000/product/${id}`);
+    });
 
-                document.querySelectorAll('.button-buy').forEach((btn) => {
-                    btn.addEventListener('click', (e) => {
-                        swal('Compra de livro', 'Sua compra foi realizada com sucesso', 'success');
-                    });
-                });
-            }
-        })
-        .catch((err) => {
-            swal('Erro', 'Erro ao listar os produtos', 'error');
-            console.error(err);
-        });
+    // 3. Cálculo de frete via CEP
+    btnShipping.addEventListener('click', function () {
+        fetchShipping(inputCep.value);
+    });
 });

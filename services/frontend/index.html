@@ -20,9 +20,30 @@
         </section>
         <div class="box cta">
             <p class="has-text-centered">Uma simples livraria utilizando microservices</p>
+
+            <!-- Pesquisa de livro por ID -->
+            <div class="field has-addons is-justify-content-center mt-4">
+                <div class="control">
+                    <input id="search-id" class="input" type="number" placeholder="Digite o ID do livro (ex: 1)">
+                </div>
+                <div class="control">
+                    <button id="btn-search" class="button is-link">Pesquisar Livro</button>
+                </div>
+            </div>
+
+            <!-- Cálculo de frete -->
+            <div class="field has-addons is-justify-content-center mt-4">
+                <div class="control">
+                    <input id="shipping-cep" class="input" type="text" placeholder="Digite o CEP para calcular frete (ex: 30170-010)">
+                </div>
+                <div class="control">
+                    <button id="btn-shipping" class="button is-primary">Calcular Frete</button>
+                </div>
+            </div>
         </div>
+
         <section class="container">
-            <div class="columns books"></div>
+            <div id="book-result" class="columns is-centered books"></div>
         </section>
 
         <footer class="footer has-text-centered">Feito com ❤️ na UFMG</footer>

@@ -15,16 +15,25 @@ const server = new grpc.Server();
 
 // implementa os métodos do InventoryService
 server.addService(inventoryProto.InventoryService.service, {
+    // No servidor gRPC em Node.js os nomes de método são convertidos para camelCase.
+    // Alguns nomes (como identidades ID) podem virar "Id" ou "ID" no cliente.
+    // Para garantir que o controller funcione, definimos ambos.
     searchAllProducts: (_, callback) => {
         callback(null, {
             products: products,
         });
     },
-    SearchProductByID: (payload, callback) => {
-        callback(
-            null,
-            products.find((product) => product.id == payload.request.id)
-        );
+    searchProductByID: (payload, callback) => {
+        const id = payload.request.id;
+        const book = products.find((product) => product.id == id);
+        console.log(`Inventory: SearchProductByID called with id=${id} ->`, book ? 'found' : 'not found');
+        callback(null, book);
+    },
+    searchProductById: (payload, callback) => {
+        const id = payload.request.id;
+        const book = products.find((product) => product.id == id);
+        console.log(`Inventory: SearchProductById called with id=${id} ->`, book ? 'found' : 'not found');
+        callback(null, book);
     },
 });
 
